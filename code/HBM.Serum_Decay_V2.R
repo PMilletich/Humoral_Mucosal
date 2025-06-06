@@ -7,13 +7,12 @@
 library(ggplot2)
 library(ggpubr)
 library(data.table)
+setwd("C:/Users/PMilletich/OneDrive - University of Maryland School of Medicine/Desktop/PATTI/HuMo/Humoral_Mucosal_V2/")
+Metadata = read.csv("data/Mother_Infant_All_4.csv") 
 
-setwd("C:/Users/PMilletich/OneDrive - University of Maryland School of Medicine/Desktop/PATTI/HuMo/")
-Metadata = read.csv("../Mother_Infant_All_4.csv") 
-
-Baseline = subset(Metadata, Metadata$Planned_Time == "Day 31")
-table(Baseline[Baseline$PT_Titer < 10,"Treatment_group"])
-table(Baseline$Treatment_group)
+# Baseline = subset(Metadata, Metadata$Planned_Time == "Day 31")
+# table(Baseline[Baseline$PT_Titer < 10,"Treatment_group"])
+# table(Baseline$Treatment_group)
 
 
 ##############################################################################
@@ -30,7 +29,7 @@ current_titer = "PT_Titer"
 for(current_titer in c("PT_Titer","FH_Titer","PRN_Titer",#"Fimbraie_Titer",
                        "Tetanus_Titer","Diphtheria_Titer")) {
   All_wide = data.frame()
-  current_patient = "CPA.05788" #unique(Maternal$Subject_ID)[1]
+  current_patient = "CPA.06881" #unique(Maternal$Subject_ID)[1]
   Only_1 = c()
   for (current_patient in unique(Maternal$Subject_ID)) {
     ID_subset = subset(Maternal, Maternal$Subject_ID == current_patient)
@@ -39,7 +38,7 @@ for(current_titer in c("PT_Titer","FH_Titer","PRN_Titer",#"Fimbraie_Titer",
                              ID_subset$Antibody_Type == "IgG")
     ID_subset_HBM_IgA = subset(ID_subset, ID_subset$Sample_Type != "Serum" & 
                                  ID_subset$Antibody_Type == "IgA")
-    
+    ID_subset_Serum = subset(ID_subset, ID_subset$Sample_Type == "Serum")
     
     #####################
     #BM IgG 6M/Day42 
@@ -86,29 +85,28 @@ for(current_titer in c("PT_Titer","FH_Titer","PRN_Titer",#"Fimbraie_Titer",
     
     #####################
     #Serum
-    if (nrow(ID_subset[ID_subset$Sample_Type == "Serum",]) == 2) {
-      Serum_FC=ID_subset[ID_subset$Planned_Time == "Birth+6m" & 
-                           ID_subset$Sample_Type == "Serum",current_titer]/
-        ID_subset[ID_subset$Planned_Time == "Delivery/Birth" & 
-                    ID_subset$Sample_Type == "Serum",current_titer]
+    if (nrow(ID_subset_Serum) == 2) {
+      Serum_FC=ID_subset_Serum[ID_subset_Serum$Planned_Time == "Birth+6m",current_titer]/
+        ID_subset_Serum[ID_subset_Serum$Planned_Time == "Delivery/Birth",current_titer]
     } else {
       Serum_FC= NA
     }
     
-    All_wide = rbind(All_wide, 
-                     data.frame("ID" = current_patient, 
-                                "FC_Samples" = c(HBM_FC_IgG, HBM_FC_IgG_2, HBM_FC_IgG_3,
-                                                 HBM_FC_IgA, HBM_FC_IgA_2, 
-                                                 Serum_FC),
-                                "Samples" = c("HBM IgG\n6m/Day42", "HBM IgG\nMature/Colostrum", "HBM IgG\n6m/Colostrum",
-                                              "HBM IgA\n6m/Day42", "HBM IgA\nMature/Colostrum",
-                                              "Serum IgG"),
-                                "Color_Group" = c("HBM IgG", "HBM IgG", "HBM IgG",
-                                                  "HBM IgA", "HBM IgA", 
+    current_data_output =data.frame("ID" = current_patient, 
+                                    "FC_Samples" = c(HBM_FC_IgG, HBM_FC_IgG_2, HBM_FC_IgG_3,
+                                                     HBM_FC_IgA, HBM_FC_IgA_2, 
+                                                     Serum_FC),
+                                    "Samples" = c("HBM IgG\n6m/Day42", "HBM IgG\nMature/Colostrum", "HBM IgG\n6m/Colostrum",
+                                                  "HBM IgA\n6m/Day42", "HBM IgA\nMature/Colostrum",
                                                   "Serum IgG"),
-
-                                "Treatment" = unique(ID_subset$Treatment_group), 
-                                "Antigen" = current_titer))
+                                    "Color_Group" = c("HBM IgG", "HBM IgG", "HBM IgG",
+                                                      "HBM IgA", "HBM IgA", 
+                                                      "Serum IgG"),
+                                    
+                                    "Treatment" = unique(ID_subset$Treatment_group), 
+                                    "Antigen" = current_titer)
+                                                          
+    All_wide = rbind(All_wide, current_data_output)
   }
   All_Antibodies_OG = rbind(All_Antibodies_OG, All_wide)
 }
@@ -126,6 +124,10 @@ All_Antibodies$Ag = All_Antibodies$Antigen
 #colnames(All_Antibodies) = c("ID", "Times", "FC_Samples", "Samples", "Treatment",  "Antigen", "Sample", "Ag")
 # data_merge = merge(All_Antibodies, Fold_Difference, all = T)
 # mixup = subset(data_merge, data_merge$m6.Delivery != data_merge$FC_Samples)
+
+
+
+
 
 
 All_Antibodies$Antigen = gsub("_Titer", "", All_Antibodies$Antigen)
@@ -151,35 +153,48 @@ All_Antibodies$Samples = factor(All_Antibodies$Samples ,
 All_Antibodies = subset(All_Antibodies, All_Antibodies$ID != "CPA.06883")
 
 
-All_Antibodies = subset(All_Antibodies, All_Antibodies$X_Group != 7)
+All_Antibodies# = subset(All_Antibodies, All_Antibodies$X_Group != 7)
 
-Pertussis_1 = All_Antibodies[All_Antibodies$Treatment == "Tdap" & 
-                               All_Antibodies$Antigen %in% c("Filamentous Hemagglutinin", 
-                                                           "Pertactin", "Pertussis Toxin"),]
+# Pertussis_1 = All_Antibodies[All_Antibodies$Treatment == "Tdap" & 
+#                                All_Antibodies$Antigen %in% c("Filamentous Hemagglutinin", 
+#                                                            "Pertactin", "Pertussis Toxin"),]
+
+Pertussis_2 = All_Antibodies[All_Antibodies$Treatment == "Tdap" &
+                               All_Antibodies$X_Group %in% c(7,8) &
+                               All_Antibodies$Antigen %in% c("Pertussis Toxin"),]
 
 #Pertussis_1 = Pertussis_1[order(Pertussis_1$X_Group),]
+wilcox.test(Pertussis_2[Pertussis_2$Antigen == "Pertussis Toxin" &
+                           Pertussis_2$X_Group == 7, "FC_Samples"],
+             Pertussis_2[Pertussis_2$Antigen == "Pertussis Toxin" &
+                           Pertussis_2$X_Group == 8, "FC_Samples"],
+             paired = F)
+Pertussis_1$X_Group_2 = factor(Pertussis_1$X_Group, 
+                               levels = c("1", "2", "3", "4", "5", "6", "7", "8"))
 
 
 jpeg("./Figures/m6.Delivery_IgG_Serum.HBM_All.jpeg", res = 400, height = 1200, width = 3000)
 Tdap_Pert = ggplot(Pertussis_1, 
-       aes(x = X_Group, y = FC_Samples, fill = Color_Group , group = Samples)) + 
+       aes(x = X_Group_2, y = FC_Samples, fill = Color_Group)) + 
   geom_hline(yintercept = 1) + 
   #ggtitle(paste("Tdap (n=", length(unique(Pertussis_1$ID)), ")", sep = "")) + 
   geom_boxplot(color = "black") + 
   facet_grid(~Antigen) + 
   theme_bw() + ylab("FC") + 
-  coord_cartesian(ylim = c(0, 3.0)) + 
-  stat_compare_means(comparisons = list(
-    c(1,2), c(1,4),
-    c(4,5), c(2,5),
-    c(1,8),c(4,8)),
-    #paired = T,
+  coord_cartesian(ylim = c(0,3)) + 
+  stat_compare_means(
+    comparisons = list(
+    c('1','2'), c('1','4'),
+    c('4','5'), c('2','5'),
+    c('7','8'),c('4','8')),
+    paired = T,
     size = 3,
     label.y = c(0, 0.3, 0, 0.5, 0.7, 0.9),
-    tip.length = 0.0002, 
-    quiet = T) + 
-  scale_x_continuous(breaks = c(1.5, 4.5, 8), 
-                     labels = c("Mature Milk/\nColostrum", "6m/\nMature Milk", "6m/\nDelivery")) + 
+    tip.length = 0.0002,
+    quiet = T) +
+  scale_x_discrete(labels = c("d42/\nDel.", "d42/\nDel.",
+                              "6m/\nd42", "6m/\nd42", 
+                              "6m/\nDel.", "6m/\nDel.")) +
   scale_fill_manual(breaks = c("HBM IgG", "HBM IgA", "Serum IgG"),
                     values = c( "#FB7676","#81C2E6", "darkgreen")) +
   theme(strip.background =element_rect(fill="white"),
